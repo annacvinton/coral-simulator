@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coral Reef Management Trade-Offs: Expert Preference Simulator</title>
+<meta name="description" content="Compose up to three coral reef management plans and see which one 136 coral reef experts would choose, based on a discrete choice experiment.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f5f8f8; --ink:#17314a; --ink-soft:#4f6578; --line:#cfdbe0;
+  --card:#ffffff; --coral:#e26b7b; --seafoam:#8fd2c6; --sand:#d9b86b; --navy:#1f4e79;
+  --none:#9aa9b4; --focus:#1f4e79;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --paper:#0f1e2c; --ink:#e8eff3; --ink-soft:#a9bac7; --line:#2b4256; --card:#162a3b;
+         --coral:#f08a98; --seafoam:#7fd0c2; --sand:#e2c47c; --navy:#8fbbe6; --none:#6f8291; --focus:#8fbbe6; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+h1,h2{font-family:"Fraunces","Iowan Old Style",Georgia,serif;font-weight:600;line-height:1.1;margin:0}
+h1{font-size:clamp(1.9rem,4.2vw,2.9rem);letter-spacing:-.01em;max-width:22ch}
+.lede{max-width:62ch;color:var(--ink-soft);margin:1rem 0 0;font-size:1.05rem}
+.lede strong{color:var(--ink);font-weight:500}
+h2{font-size:1.35rem;margin-bottom:.35rem}
+section{margin-top:2.75rem}
+
+/* choice task */
+.task{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.25rem;box-shadow:0 1px 0 rgba(23,49,74,.04)}
+.task-prompt{font-family:"Fraunces",Georgia,serif;font-size:1.1rem;margin:0 0 1rem;max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(120px,1.1fr) repeat(3,minmax(150px,1fr));grid-template-rows:repeat(5,auto);grid-auto-flow:column;gap:.5rem .75rem;align-items:center}
+.attrs,.opt{display:contents}
+.field{display:block}
+.field>span{display:none}
+.opt-head{display:flex;flex-direction:column;gap:.35rem;padding:.5rem .6rem;border-radius:10px;border:2px solid var(--line);background:transparent}
+.opt[data-opt="1"] .opt-head{border-color:var(--coral)}
+.opt[data-opt="2"] .opt-head{border-color:var(--sand)}
+.opt[data-opt="3"] .opt-head{border-color:var(--seafoam)}
+.opt-head .name{font-weight:600;font-size:1rem}
+.opt-head label{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--ink-soft);cursor:pointer}
+.opt-head input{accent-color:var(--navy);width:16px;height:16px;margin:0}
+.attr{font-weight:500;padding:.25rem 0;line-height:1.25}
+.attr small{display:block;color:var(--ink-soft);font-weight:400;font-size:.8rem}
+select{width:100%;font:inherit;font-size:.93rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem;cursor:pointer}
+select:disabled{opacity:.45;cursor:not-allowed}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.none-row{display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.9rem;border-top:1px dashed var(--line);color:var(--ink-soft);font-size:.92rem}
+.none-row b{color:var(--ink);font-weight:500}
+
+/* results */
+.results-head{display:flex;flex-wrap:wrap;gap:1rem 1.5rem;align-items:flex-end;justify-content:space-between}
+.seg{display:flex;flex-direction:column;gap:.3rem;min-width:260px}
+.seg span{font-size:.85rem;color:var(--ink-soft)}
+.chart{margin-top:1rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.25rem}
+svg{width:100%;height:auto;display:block}
+.bar-label{font-size:14px;fill:var(--ink);font-weight:500}
+.bar-sub{font-size:12px;fill:var(--ink-soft)}
+.bar-val{font-size:15px;fill:var(--ink);font-weight:600}
+.axis{stroke:var(--line);stroke-width:1}
+.axis-t{font-size:11px;fill:var(--ink-soft)}
+.ci{stroke:var(--ink);stroke-width:1.5}
+table.stats{width:100%;border-collapse:collapse;margin-top:1rem;font-size:.92rem}
+table.stats th,table.stats td{text-align:right;padding:.45rem .5rem;border-top:1px solid var(--line)}
+table.stats th:first-child,table.stats td:first-child{text-align:left}
+table.stats thead th{border-top:0;color:var(--ink-soft);font-weight:500}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:.45rem;vertical-align:-1px}
+.note{color:var(--ink-soft);font-size:.9rem;max-width:72ch;margin-top:.9rem}
+footer{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--line);color:var(--ink-soft);font-size:.88rem;max-width:78ch}
+footer p{margin:.4rem 0}
+a{color:var(--navy)}
+@media (max-width:720px){
+  .grid{display:block}
+  .attrs{display:none}
+  .opt{display:block;margin-top:1rem;padding:.75rem;border-radius:12px;border:1px solid var(--line)}
+  .opt:first-of-type{margin-top:0}
+  .opt-head{margin-bottom:.6rem}
+  .field{margin-top:.5rem}
+  .field>span{display:block;font-size:.85rem;color:var(--ink-soft);margin-bottom:.2rem}
+  .chart{overflow-x:auto}
+  .chart svg{min-width:620px}
+}
+@media (prefers-reduced-motion:no-preference){ rect.bar{transition:width .35s ease} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Coral reef management trade‑offs: an expert preference simulator</h1>
+    <p class="lede">Build up to three reef management plans and see which one coral reef experts would choose. Results come from a discrete choice experiment with <strong>136 scientists, managers, and restoration practitioners</strong> who each judged ten trade‑off scenarios.</p>
+  </header>
+
+  <section aria-labelledby="task-h">
+    <h2 id="task-h">Compose the plans</h2>
+    <div class="task">
+      <p class="task-prompt">Imagine you have been tasked to choose a management plan for a coral reef. Given the options below, which plan would you recommend?</p>
+      <div class="grid" id="grid">
+        <div class="attrs" id="attrs"><div class="corner"></div></div>
+        <div class="opt" data-opt="1"><div class="opt-head"><span class="name">Option 1</span><label><input type="checkbox" id="on1" checked> Available</label></div></div>
+        <div class="opt" data-opt="2"><div class="opt-head"><span class="name">Option 2</span><label><input type="checkbox" id="on2" checked> Available</label></div></div>
+        <div class="opt" data-opt="3"><div class="opt-head"><span class="name">Option 3</span><label><input type="checkbox" id="on3" checked> Available</label></div></div>
+      </div>
+      <div class="none-row"><span><b>None</b> — I wouldn’t choose any of these. Always offered, as in the survey.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="res-h">
+    <div class="results-head">
+      <div>
+        <h2 id="res-h">Which plan would experts choose?</h2>
+        <div class="note" style="margin-top:.2rem">Share of experts whose highest‑utility plan is each option, with 95% confidence intervals.</div>
+      </div>
+      <label class="seg"><span>Show results for</span>
+        <select id="segment">
+          <option value="all">All experts (n = 136)</option>
+          <optgroup label="By region of work">
+            <option value="reg1">Greater Caribbean (n = 76)</option>
+            <option value="reg2">Indo‑Pacific (n = 42)</option>
+            <option value="reg3">Great Barrier Reef (n = 18)</option>
+          </optgroup>
+          <optgroup label="By professional affiliation">
+            <option value="aff1">Academic (n = 71)</option>
+            <option value="aff2">Government (n = 28)</option>
+            <option value="aff3">Non‑profit / social enterprise (n = 37)</option>
+          </optgroup>
+        </select>
+      </label>
+    </div>
+    <div class="chart"><svg id="chart" viewBox="0 0 900 260" role="img" aria-labelledby="chart-t"><title id="chart-t">Share of experts choosing each option</title></svg></div>
+    <table class="stats" aria-label="Shares of preference with standard errors and confidence intervals">
+      <thead><tr><th>Plan</th><th>Share</th><th>Std. error</th><th>95% CI</th></tr></thead>
+      <tbody id="stats"></tbody>
+    </table>
+    <p class="note">Shares use a first‑choice rule: each expert is assigned to the available option with the highest total part‑worth utility from their individual hierarchical Bayes estimates (ties split evenly). Utilities are the raw CBC/HB estimates, so <em>None</em> is scored by each expert’s own none‑option utility. Confidence intervals are mean ± 1.96 × SE across the selected experts.</p>
+  </section>
+
+  <footer>
+    <p><strong>How to read the cost attribute.</strong> Cost is expressed as the share of the total budget left for traditional activity management (marine protected areas, water quality, fishing regulation) after funding the outplanting, biobanking and R&amp;D in the plan.</p>
+    <p><strong>Source.</strong> Vinton AC, Árvai J, Zheng D, Kenkel CD, Marcos A. Expert priorities for coral reef conservation under climate change: a discrete choice experiment. <em>Ecosphere</em> (accepted, in press); preprint at <a href="https://doi.org/10.22541/au.175217038.86609064/v3">doi:10.22541/au.175217038.86609064/v3</a>. Data and the original spreadsheet simulator are archived on Dryad: <a href="https://doi.org/10.5061/dryad.bnzs7h4rd">doi:10.5061/dryad.bnzs7h4rd</a>.</p>
+    <p>University of Southern California, Wrigley Institute for Environment and Sustainability · University of Maine at Presque Isle. Survey administered with Sawtooth Software; this page reproduces the first‑choice simulator in the supplement.</p>
+  </footer>
+</div>
+
+<script>
+// ---- Attribute definitions (order matches the utility vector) ----
+const ATTRS = [
+  {key:'out', name:'Hand outplanting', sub:'Transplanting corals from nurseries to the reef',
+   levels:['None','Small‑scale outplanting','Large‑scale outplanting']},
+  {key:'bio', name:'Biobanking', sub:'Preserving coral genetic material',
+   levels:['None','Live banking','Cryobanking','Live banking + cryobanking']},
+  {key:'rd', name:'Research & development', sub:'The R&D priority funded by the plan',
+   levels:['Host genetic interventions','Disease treatment / management','Stress hardening','Algal symbiont manipulation']},
+  {key:'cost', name:'Cost', sub:'Budget left for traditional management',
+   levels:['90% of budget left','60% of budget left','30% of budget left']}
+];
+const OFFS = [0,3,7,11];          // start index of each attribute's levels
+const NONE_IDX = 14;              // none-option utility
+// Defaults match the example in the published supplement
+const DEFAULTS = [[3,4,4,2],[1,4,3,1],[3,2,1,3]];
+const COLORS = ['var(--coral)','var(--sand)','var(--seafoam)','var(--none)'];
+const NAMES = ['Option 1','Option 2','Option 3','None'];
+
+// ---- Respondent data: [region, affiliation, 15 part-worth utilities] ----
+// region: 1 Greater Caribbean, 2 Indo-Pacific, 3 Great Barrier Reef
+// affiliation: 1 Academic, 2 Government, 3 Non-profit / social enterprise
+const DATA = [[1,1,-2.81254,0.65443,2.15811,-2.30544,0.62547,-0.48451,2.16449,-0.21398,-1.48866,1.09244,0.61019,-0.34813,0.78447,-0.43634,-2.74994],[1,3,-2.86059,0.55094,2.30965,-1.43888,0.81352,-0.23823,0.86359,0.75993,-0.31131,-0.54538,0.09677,-1.39706,0.6864,0.71066,-2.14424],[1,2,-1.58414,0.43875,1.14539,-2.1161,0.42779,0.62293,1.06538,-1.17117,0.28717,1.3097,-0.4257,-0.24271,1.30438,-1.06167,0.0458],[1,3,-3.62322,0.11149,3.51173,-1.92824,0.64164,-0.31321,1.59981,-0.68856,0.35832,0.83173,-0.50149,0.86715,0.67137,-1.53852,-3.76863],[2,1,-0.54117,1.13678,-0.59561,-0.67321,0.46232,-0.8972,1.1081,1.27704,-0.81735,-0.50138,0.0417,0.3865,0.44023,-0.82673,5.08619],[1,1,0.13684,0.74149,-0.87833,-2.64113,1.29483,-0.01544,1.36174,0.57386,-0.85587,-0.75764,1.03965,-0.10881,0.87734,-0.76852,-2.56803],[1,1,-1.37395,0.37088,1.00307,-3.17253,-0.22848,0.59275,2.80826,0.39632,-0.78176,-0.77321,1.15865,-0.03811,0.56876,-0.53065,-2.64177],[1,2,-1.09961,0.35834,0.74127,-3.6443,1.11571,0.13172,2.39687,0.05149,1.01194,-0.45484,-0.60858,0.98087,0.37703,-1.35791,-3.95622],[1,3,-2.79758,0.44493,2.35264,-1.7551,0.33217,0.36401,1.05892,-0.03798,-1.50903,0.93099,0.61601,0.01516,1.09814,-1.1133,-3.01632],[1,1,-2.19843,0.6556,1.54283,-2.17198,0.50361,-0.21597,1.88434,-0.41201,1.19249,0.36887,-1.14935,1.75174,0.79746,-2.5492,-3.26517],[2,1,-1.51924,0.26331,1.25593,-0.326,1.8921,-1.37009,-0.19601,1.51265,-0.68763,0.6749,-1.49993,0.37121,0.04188,-0.41308,-3.17107],[1,1,0.14479,0.083,-0.22778,-0.56042,1.98626,-1.50573,0.07989,1.81064,-0.79724,0.31501,-1.32841,0.84357,-0.00341,-0.84016,-2.71978],[1,2,-2.36701,1.23133,1.13568,0.499,0.53482,-1.38226,0.34844,0.09585,-0.36606,-0.33467,0.60489,-0.82263,1.61434,-0.79171,3.18474],[1,1,0.54089,0.81236,-1.35324,-1.58414,1.73683,-0.94893,0.79624,0.13258,0.24677,0.26936,-0.64871,0.00303,0.39719,-0.40022,2.5288],[1,3,0.15684,0.43666,-0.59351,-0.902,2.32879,-1.36258,-0.06422,0.88118,-0.60652,-0.36242,0.08776,0.47093,0.00149,-0.47242,2.22258],[2,1,-0.73768,0.9993,-0.26162,-0.35338,0.43034,-0.83989,0.76293,0.4186,-0.66138,0.01416,0.22862,-0.26659,0.51293,-0.24634,6.19988],[1,2,-0.15542,0.10884,0.04658,-3.15938,0.84306,-0.01457,2.33089,0.38674,1.13078,-0.19618,-1.32134,0.95925,-0.26778,-0.69146,-3.17655],[1,1,-1.18033,0.18534,0.99498,-2.82512,1.25426,-0.21486,1.78571,0.23202,-0.51912,1.08462,-0.79752,0.19607,1.00038,-1.19645,-3.61583],[2,1,0.67214,0.55142,-1.22355,-0.90653,1.73008,-0.85704,0.03349,0.50095,-0.47747,-0.06677,0.04329,-0.5058,0.39032,0.11548,-2.19773],[1,3,-2.49158,1.29084,1.20074,-2.06382,0.2791,-0.06436,1.84908,0.01438,0.69384,-0.84815,0.13993,-1.00848,1.37394,-0.36546,1.55754],[1,3,-3.10313,1.28462,1.81851,-2.3896,0.18118,0.06502,2.1434,-1.03274,0.68152,0.29623,0.05498,-1.11656,1.17907,-0.06251,0.02314],[1,1,-0.44945,0.59394,-0.14449,-2.34159,-0.22436,-0.00514,2.57109,-0.34985,-0.18906,-0.01939,0.5583,-1.01708,0.82025,0.19684,2.4459],[1,3,-3.0164,0.20956,2.80684,-2.72036,0.3025,0.17728,2.24058,0.24018,-0.23769,0.05148,-0.05397,-0.03676,0.97446,-0.93769,-3.42284],[1,3,-2.40954,-0.11196,2.5215,0.35417,1.07901,-1.7592,0.32602,1.13536,-1.08331,0.20332,-0.25537,0.09362,0.34907,-0.44269,2.73036],[1,3,0.36368,0.88619,-1.24987,-2.1935,-0.32027,0.56285,1.95092,0.43308,-1.06932,-0.00784,0.64409,1.34455,0.47157,-1.81612,2.29713],[3,1,1.66326,-0.0047,-1.65856,-1.9334,-0.03046,0.70819,1.25567,0.73634,-0.2831,-0.48135,0.0281,-1.12211,-0.34913,1.47124,2.39246],[3,2,-2.30642,0.64967,1.65675,-0.60179,0.1362,-0.13505,0.60064,-0.35148,-1.19278,0.17287,1.37139,0.57351,0.69239,-1.2659,2.40297],[1,3,-1.7043,0.87122,0.83308,-0.80108,2.16131,-1.52969,0.16947,0.17807,-0.44628,-0.20218,0.4704,0.55778,0.32521,-0.88299,2.40946],[1,3,-3.22917,0.47212,2.75704,-1.57427,0.51338,-0.52074,1.58164,0.61836,-1.70443,0.91025,0.17583,0.50086,0.40285,-0.90371,-3.16474],[3,1,-1.47619,0.37308,1.10311,-0.66717,1.19304,-0.99946,0.47359,1.23713,-1.91925,1.20991,-0.52778,0.36601,0.55682,-0.92283,-2.7802],[3,2,-2.2493,0.48913,1.76017,1.04732,0.20245,-0.88602,-0.36376,0.96338,-1.30255,0.30945,0.02972,-0.98682,0.40475,0.58207,3.02364],[3,1,0.29705,-0.28379,-0.01326,-0.19434,0.61633,-0.93004,0.50804,2.04201,-2.45163,0.956,-0.54638,0.96803,0.27266,-1.24069,-2.77225],[3,2,1.38498,0.18131,-1.56629,-0.57188,0.03214,-0.34416,0.88389,1.04274,-1.74723,0.30402,0.40047,-1.11118,-0.43561,1.54679,2.0543],[2,1,-1.59224,0.40032,1.19192,-0.89381,1.63708,-1.43345,0.69019,0.96494,-1.13271,1.12705,-0.95928,1.68936,0.54452,-2.23388,-3.11856],[2,2,-0.35918,-0.10081,0.45999,-1.78277,1.67728,-1.32278,1.42827,0.86671,-1.69548,0.00787,0.82089,0.83957,0.87518,-1.71475,-2.98598],[3,1,-1.07124,1.15701,-0.08577,-0.45837,1.19249,-1.48162,0.7475,2.03777,-1.79327,0.40323,-0.64772,0.74237,0.94252,-1.68489,1.57064],[3,1,-0.99779,0.69464,0.30315,-1.53892,-0.00573,-0.2594,1.80404,-0.43959,-0.44335,1.62065,-0.73771,0.61954,1.18648,-1.80602,-2.48561],[1,3,-0.93206,0.27595,0.6561,-2.43763,1.05594,-0.19157,1.57326,0.24148,-1.0247,1.16468,-0.38146,1.38635,0.85332,-2.23967,-3.41659],[2,2,-1.8188,0.23376,1.58504,-2.7905,0.68813,0.3171,1.78527,-0.55605,0.33677,1.04926,-0.82998,0.64618,1.7436,-2.38978,-3.76332],[1,3,-2.74738,1.1259,1.62148,-2.68649,1.32716,-0.60728,1.96661,-0.20086,-0.48186,1.03618,-0.35345,0.43395,1.42048,-1.85443,-3.23405],[1,3,0.38769,0.51452,-0.90222,-0.87507,0.50442,-0.77365,1.14429,1.15131,-0.99832,-0.33574,0.18276,-0.25016,0.67323,-0.42307,4.9381],[1,2,-2.59245,0.81768,1.77476,-3.05412,0.43308,-0.02303,2.64406,-0.01065,-0.52941,0.59043,-0.05037,0.86269,0.98718,-1.84986,-3.25457],[1,3,-1.16799,0.51414,0.65385,-2.75276,1.27104,-0.94239,2.42412,0.32779,-1.22088,0.12842,0.76466,0.40885,1.03973,-1.44858,-2.67698],[2,3,-0.66954,0.92368,-0.25414,-0.40459,0.39088,-0.74544,0.75915,0.55337,-0.7509,-0.06561,0.26314,-0.298,0.57003,-0.27203,6.1807],[2,1,-0.48439,0.59275,-0.10836,1.05927,1.13512,-1.27504,-0.91935,1.42209,-0.65968,-1.14146,0.37904,-0.27951,0.08735,0.19216,1.01158],[2,3,-1.40613,-0.04403,1.45016,-0.742,1.37032,-1.53396,0.90564,0.36004,-1.17429,1.72494,-0.91068,1.34106,0.63788,-1.97894,-3.28989],[1,1,-0.67482,-0.08434,0.75917,-3.2783,-0.48524,0.95749,2.80605,0.29684,0.22696,0.69917,-1.22296,0.40317,-0.19529,-0.20788,-3.32396],[1,3,-1.73138,0.08682,1.64456,-3.08009,1.13189,-0.14275,2.09095,-0.00875,-0.04648,-0.36831,0.42355,0.40661,0.0666,-0.47321,-4.09901],[2,1,-0.10103,1.1462,-1.04517,-0.60955,0.45223,-0.49435,0.65167,-0.05565,-0.47305,0.2842,0.24449,0.94437,0.66149,-1.60586,1.70323],[2,1,-0.65612,-0.19924,0.85536,-2.86576,-0.17339,1.13447,1.90469,-0.2192,-0.87924,0.44247,0.65597,1.62816,0.46079,-2.08895,-3.72693],[1,1,1.28647,0.47173,-1.7582,-2.16143,-0.10566,0.43058,1.83651,-0.439,0.26664,0.3747,-0.20234,1.03702,-0.04453,-0.99248,2.68191],[1,2,-1.09663,0.62727,0.46936,-0.97401,1.08979,-1.35113,1.23535,1.12718,-1.61053,-0.42958,0.91294,0.86898,1.02911,-1.8981,-2.40789],[1,3,0.83725,0.91822,-1.75546,-2.56981,0.48891,1.0513,1.0296,0.2565,-0.06925,-0.57754,0.39029,-0.0201,0.88814,-0.86804,-0.27498],[1,1,-0.7698,0.00782,0.76198,-2.51198,1.80854,0.23199,0.47145,0.85734,0.24528,-0.09226,-1.01035,0.80455,0.95858,-1.76313,-3.89137],[1,3,-2.51899,0.10651,2.41247,-2.87448,0.28585,0.4717,2.11693,-1.11386,1.72114,-0.32782,-0.27946,0.22675,0.1816,-0.40834,-3.6037],[1,3,-2.4435,0.91166,1.53184,-1.96059,0.23778,-0.84218,2.56499,0.30038,-0.9447,0.62081,0.02351,-0.30662,1.2442,-0.93758,2.54247],[1,1,-0.24225,0.49579,-0.25354,-3.1108,0.01423,0.72013,2.37644,0.34295,-1.40654,0.22259,0.841,-0.09791,0.92619,-0.82828,-2.63124],[1,1,1.59875,0.41497,-2.01372,-3.05885,0.5107,0.85267,1.69549,-0.12395,0.64232,-0.64574,0.12736,1.14825,0.23263,-1.38088,-2.64081],[3,2,-3.1277,-0.02645,3.15415,-0.6238,0.09315,-0.78605,1.3167,0.35329,-1.46836,0.13815,0.97691,-0.71964,0.75087,-0.03124,2.05333],[2,1,-2.02261,1.03079,0.99183,-0.24455,1.32168,-1.7053,0.62817,0.83202,-1.81671,0.99593,-0.01124,-0.74333,0.36908,0.37425,1.89645],[2,1,-3.32251,0.92889,2.39361,0.01175,0.88639,-2.24896,1.35082,0.15929,-1.03514,0.54153,0.33432,-0.31742,1.12978,-0.81236,-0.10421],[3,1,-0.94584,0.59231,0.35353,-1.20763,1.02839,-0.79284,0.97208,-0.21395,-1.49614,-0.37207,2.08215,-0.10494,0.56351,-0.45857,-0.49122],[1,1,-1.61505,0.58415,1.03089,-3.3586,0.49778,-0.03557,2.89638,-1.20635,1.35342,0.3017,-0.44877,-0.14593,0.50052,-0.35459,-3.16393],[1,3,-1.37589,0.75559,0.62031,-0.90591,0.54224,-0.22701,0.59068,-1.2402,0.51392,1.49095,-0.76466,0.94018,0.36626,-1.30644,-3.01177],[3,1,-0.6014,0.99663,-0.39523,-0.32419,0.26366,-0.78433,0.84486,0.53902,-0.73598,0.01954,0.17742,-0.26767,0.54818,-0.28051,6.30743],[2,1,-3.77673,0.30251,3.47422,-1.94487,0.43712,-0.50007,2.00782,-0.43175,0.91476,0.22254,-0.70555,-0.33987,0.48915,-0.14927,-1.21289],[3,1,-0.40151,1.44882,-1.04731,-3.21512,0.93662,0.07822,2.20028,-1.11602,0.9844,-0.20893,0.34056,0.69881,0.68819,-1.387,-2.38712],[2,3,-3.26727,0.75333,2.51393,0.69952,0.23626,-0.98621,0.05043,-0.59897,1.37375,-0.61782,-0.15696,0.3229,0.18871,-0.51161,-2.2398],[2,1,-2.33939,1.5107,0.8287,-0.76226,0.70425,-0.80004,0.85805,0.17441,-0.28825,0.61987,-0.50603,0.31539,1.63937,-1.95476,0.80863],[1,3,-0.90372,1.12431,-0.22059,-0.09939,0.24521,-0.77491,0.62909,0.43801,-0.49956,-0.26335,0.3249,-0.41803,0.70336,-0.28532,6.22091],[2,1,-1.90538,0.20741,1.69797,-2.17365,0.88939,-0.02048,1.30474,-0.10674,-0.64393,1.64537,-0.8947,0.70302,0.64857,-1.35159,-3.5775],[3,2,0.20172,0.74692,-0.94865,-0.0958,1.0999,-1.10415,0.10005,1.24431,-1.43752,-0.61458,0.8078,0.43492,0.53933,-0.97425,2.99199],[1,1,-0.89796,1.62521,-0.72725,-1.01665,0.52382,-0.37614,0.86898,-0.0226,0.4242,-0.21845,-0.18315,-1.02467,1.12552,-0.10086,1.70503],[2,1,-2.80736,0.92799,1.87937,0.2081,-0.38924,-1.04036,1.2215,0.87905,-1.61391,-0.3506,1.08547,-0.51508,0.51304,0.00204,0.0546],[1,1,-2.81082,1.0396,1.77123,-2.98816,0.12167,0.5407,2.32578,-0.62558,1.23814,0.33552,-0.94808,0.88603,0.63815,-1.52417,-3.16325],[2,2,-2.55621,1.27497,1.28123,-0.24186,0.42777,-1.10585,0.91994,-0.33079,-1.59243,1.25205,0.67117,-0.33743,1.39205,-1.05461,2.10583],[2,1,1.39554,-0.11482,-1.28072,-0.35567,1.26405,-0.96104,0.05266,1.60544,-2.23408,1.2103,-0.58165,0.04875,0.71991,-0.76866,-2.00123],[1,3,-1.42363,1.40163,0.022,-2.26444,0.65706,-0.4391,2.04648,-0.17684,0.29165,-0.77706,0.66224,0.26276,1.5159,-1.77866,1.02978],[2,3,-3.60201,-0.25547,3.85748,0.31109,0.62819,-0.89949,-0.03979,0.47329,-0.73485,0.80983,-0.54827,0.22158,0.34435,-0.56593,-3.26402],[2,1,-2.0404,0.59868,1.44172,-2.83196,1.21844,-0.60035,2.21387,0.02902,-0.53935,1.51919,-1.00886,0.6842,1.00079,-1.68498,-3.62411],[2,2,-1.54487,0.83231,0.71257,-1.62044,1.32558,-0.83705,1.13191,-1.06542,1.34559,0.42305,-0.70323,0.02147,0.36736,-0.38883,-0.71542],[3,2,-1.39621,0.09662,1.29959,-2.14793,0.3851,0.43134,1.3315,-0.05111,0.55716,-0.97313,0.46708,1.47954,0.60757,-2.08711,-3.1577],[2,1,-1.20703,1.4959,-0.28887,-0.23354,0.06527,-0.95918,1.12745,0.78695,0.04056,-0.3448,-0.48271,0.67258,0.27484,-0.94741,3.56878],[2,3,-1.05457,1.958,-0.90343,-1.39577,1.40608,-1.09599,1.08568,0.22049,0.25697,0.1619,-0.63936,0.62662,0.89115,-1.51777,2.72464],[2,1,0.09029,0.42531,-0.5156,-0.39025,0.51423,-0.53867,0.41469,3.27313,-1.90093,-0.82487,-0.54734,-0.13869,0.02484,0.11385,0.95579],[1,1,-2.17337,1.71519,0.45818,-1.92769,0.21044,0.26902,1.44824,0.15822,-0.04561,0.34725,-0.45986,0.17605,1.62122,-1.79728,1.83689],[2,1,0.22471,0.55639,-0.7811,-0.94566,0.18908,-0.50081,1.25739,0.13679,0.50326,-0.4452,-0.19485,-0.48374,0.10557,0.37817,4.83187],[1,1,-2.69259,0.88805,1.80454,-1.59548,-0.17717,-0.36329,2.13594,-0.24577,-0.40785,1.35337,-0.69975,0.40931,1.06404,-1.47335,2.03584],[2,2,-3.69514,0.10149,3.59364,-1.22016,0.856,-0.82387,1.18803,0.14959,-0.69868,1.14529,-0.5962,0.36373,0.83574,-1.19947,-3.57324],[2,2,-2.54863,1.03163,1.517,-2.2311,-0.00948,0.05521,2.18537,-0.23655,-0.23108,1.04869,-0.58105,0.57309,0.80985,-1.38294,-0.44006],[2,1,-2.76631,1.10416,1.66214,0.17898,1.7485,-1.79033,-0.13715,0.15858,-1.10146,0.73398,0.2089,-0.85901,0.87538,-0.01636,-1.86514],[2,3,-2.44746,0.28598,2.16148,-0.89528,1.46555,-1.11081,0.54054,1.30393,-2.04361,1.20414,-0.46446,1.21503,0.34626,-1.56128,-3.89898],[1,1,-3.09625,1.30653,1.78972,-2.7159,0.17837,0.00973,2.5278,-0.61736,0.20673,0.84798,-0.43735,0.44667,0.72036,-1.16702,0.95612],[2,1,-1.05908,-0.26141,1.32049,-0.72619,0.2,0.19231,0.33388,-0.4835,0.50742,0.35413,-0.37806,1.26597,0.48073,-1.7467,0.3161],[2,2,-1.29748,0.58393,0.71355,-0.22234,1.52197,-1.51844,0.21881,0.7763,-0.22586,-0.51668,-0.03376,-0.43806,0.67538,-0.23731,1.56572],[1,3,-2.75016,0.65314,2.09702,-1.64346,0.28684,-0.37677,1.73339,-0.49468,-0.61255,1.22708,-0.11985,1.22831,0.27168,-1.5,-3.26233],[1,3,-3.13308,0.20138,2.93169,-1.45146,0.27129,0.20849,0.97168,0.69004,0.6282,0.30729,-1.62554,0.50721,0.49714,-1.00435,-3.49525],[1,3,-1.16243,0.81885,0.34358,-2.86154,1.25733,-0.58499,2.1892,0.66354,0.89665,-0.47298,-1.08721,-0.01006,0.4295,-0.41945,-2.79474],[1,3,-1.34909,0.5523,0.79679,-3.12181,0.49809,-0.06704,2.69076,0.05421,-0.31372,0.00887,0.25065,0.47355,0.94495,-1.4185,-2.7566],[1,1,-1.78487,-0.41002,2.19489,-3.15737,0.82266,0.54859,1.78612,-0.66265,0.13228,0.74052,-0.21014,0.65541,-0.07058,-0.58484,-4.62105],[1,1,-1.56737,-0.01943,1.5868,0.06318,1.0115,-0.57395,-0.50073,0.46008,-1.25896,-0.01454,0.81343,-0.25059,0.1496,0.10099,0.12671],[2,1,-1.67949,0.29918,1.38031,-0.8738,0.43643,-0.15843,0.5958,1.87242,-2.2994,0.15844,0.26855,-0.60656,0.99708,-0.39052,-2.62933],[1,3,-1.96738,-0.30965,2.27703,-1.75865,0.59302,-0.8115,1.97713,1.09768,-1.25581,0.41595,-0.25782,0.06627,0.27983,-0.3461,0.51793],[1,1,-2.85601,1.42457,1.43143,-2.30406,0.97531,-0.50465,1.8334,-0.57385,-0.58912,0.89055,0.27242,0.20244,1.02808,-1.23052,-2.57063],[1,1,-2.84973,1.01599,1.83374,-3.17134,0.38753,0.15823,2.62558,-0.0702,0.43308,-0.29932,-0.06356,0.44799,0.49989,-0.94787,-3.2129],[1,1,-2.15351,-0.54749,2.70099,0.63606,1.55347,-1.83075,-0.35878,0.6833,-0.89725,0.09671,0.11723,-0.63715,0.59369,0.04346,0.41414],[1,1,0.24964,0.62463,-0.87427,-2.25143,0.55518,0.42073,1.27551,1.01004,-0.63211,-0.09923,-0.2787,1.25411,0.94675,-2.20086,-2.57657],[1,1,-0.80274,1.06485,-0.26211,-1.71533,1.32933,-0.84603,1.23203,1.41823,-1.32629,0.52962,-0.62156,0.40885,0.55991,-0.96876,0.4872],[1,1,-2.5532,0.81219,1.74101,-1.20534,0.30891,-1.00887,1.90531,0.47403,-1.54559,0.45111,0.62045,-0.93465,1.24031,-0.30567,3.30804],[1,1,-2.14181,0.76374,1.37807,-0.36682,1.91035,-1.92171,0.37817,-0.36333,0.69984,-0.05532,-0.28118,0.03682,-0.15471,0.1179,-2.76699],[1,3,-2.20251,0.80922,1.39329,-2.04244,1.0688,-1.09172,2.06536,-0.17535,-0.61884,1.57556,-0.78137,0.54277,1.01207,-1.55484,-3.56992],[2,2,-2.44493,1.32945,1.11548,-2.35109,0.05157,0.11099,2.18853,-1.28089,1.15582,0.71243,-0.58735,0.79306,0.97147,-1.76452,1.02272],[1,2,-0.21504,0.26702,-0.05198,-2.75832,0.89759,-0.63288,2.49361,0.37102,-0.24589,-0.52521,0.40008,0.16501,-0.53272,0.36772,-0.95993],[3,2,-1.59697,0.91793,0.67904,-2.11937,0.60224,-0.01335,1.53048,0.79472,0.439,-0.28698,-0.94674,0.88771,0.77385,-1.66155,0.35885],[1,2,-2.93655,1.16773,1.76882,-1.99816,0.0655,-0.11734,2.05,-0.42981,0.31136,-0.21531,0.33376,0.98305,1.29527,-2.27832,-2.47557],[1,3,-0.72214,-0.45088,1.17302,-1.19101,0.67764,-0.49603,1.00941,-0.39553,-0.46519,-0.53991,1.40062,0.53299,-0.0409,-0.49209,-2.9381],[2,1,-0.02031,-0.4156,0.43592,-2.06868,1.66255,-1.06163,1.46776,1.45686,-1.37333,-0.04899,-0.03454,0.36005,0.0947,-0.45475,-1.3313],[1,1,-3.13796,0.63259,2.50537,-2.67201,0.62323,-0.05145,2.10023,-0.15988,0.39452,0.43762,-0.67226,0.80321,1.12015,-1.92336,-3.66619],[1,1,-0.65819,0.64467,0.01352,-0.80678,1.78156,-1.47096,0.49618,0.64161,-2.04171,0.59722,0.80288,0.04289,0.607,-0.6499,-2.32733],[1,2,-3.40444,0.73817,2.66627,-1.43551,0.29782,-0.68233,1.82002,-0.69281,-0.49785,0.67715,0.51351,-0.11096,1.2794,-1.16844,1.16887],[2,1,-1.55707,0.62038,0.93668,-0.51968,1.05436,-1.48896,0.95429,0.43909,0.49325,0.73479,-1.66713,1.1271,0.54921,-1.67631,-0.57076],[1,2,-2.35281,0.95515,1.39766,-1.38188,1.10858,-1.38411,1.65741,0.99367,-1.59309,0.03619,0.56323,0.18946,0.6407,-0.83016,2.23078],[1,1,-1.42087,1.05257,0.3683,-0.79773,1.22543,-0.86904,0.44134,0.38554,-1.83213,1.38987,0.05671,-0.66432,-0.01466,0.67899,-2.20993],[1,1,-1.56423,0.27385,1.29038,-0.79986,1.29213,-1.143,0.65073,2.35422,-2.01017,-0.35161,0.00756,0.28816,0.37405,-0.6622,-2.69692],[2,1,0.25954,1.02231,-1.28184,-2.43488,0.05548,0.46647,1.91293,0.08319,-0.58909,-0.10764,0.61354,1.05677,0.48014,-1.53691,1.66728],[1,1,-0.06374,-0.34052,0.40427,-1.54521,0.71634,-0.31743,1.1463,2.54377,-1.42904,-1.11121,-0.00352,0.00159,0.17699,-0.17859,-2.63748],[3,2,-2.44702,0.66733,1.77969,-0.01758,0.48687,-1.13649,0.6672,1.2859,-2.20455,-0.91372,1.83236,-0.61684,0.84773,-0.23089,0.01448],[3,1,-0.70055,0.91632,-0.21577,-0.21388,0.42513,-0.89425,0.683,0.40821,-0.71194,0.07409,0.22964,-0.36787,0.64834,-0.28047,6.42884],[3,1,-0.61195,0.89649,-0.28454,-0.26452,0.38153,-0.89255,0.77555,0.58124,-0.67637,-0.14217,0.2373,-0.32731,0.53285,-0.20554,6.22694],[2,1,-3.32007,0.69136,2.62871,0.32674,-0.33531,-0.11279,0.12136,-0.97538,0.37373,0.82105,-0.2194,-0.45935,-0.04498,0.50432,-2.25619],[2,2,-1.16824,0.25539,0.91285,-0.98966,0.2643,0.30067,0.4247,-0.54822,0.26696,-0.09444,0.3757,-0.33669,1.04081,-0.70412,-2.665],[2,2,-2.76501,0.62432,2.14068,0.39147,1.60046,-1.8118,-0.18013,0.65918,-1.52469,0.24131,0.6242,-0.47727,1.06245,-0.58518,0.65973],[1,3,-1.26579,0.49683,0.76896,-1.73912,1.54267,-1.47958,1.67603,1.11764,-1.71274,0.41262,0.18248,-0.08315,0.8575,-0.77435,-2.58652],[1,1,-0.08367,1.0652,-0.98154,0.56857,0.67119,-1.50459,0.26484,-0.22921,-1.4082,2.21888,-0.58147,0.41123,0.62085,-1.03208,2.13594],[1,1,-0.30142,0.52366,-0.22224,-1.64742,0.96088,-1.05315,1.73969,1.74994,-1.53498,0.34581,-0.56077,-0.25852,0.58631,-0.32778,1.9029],[1,3,-2.9717,-0.09461,3.06631,-0.92378,0.07165,-0.2188,1.07093,0.16179,0.3084,-0.53258,0.06239,-0.15465,-0.33193,0.48658,-2.6807]];
+
+// ---- Build the choice grid ----
+const attrsCol = document.getElementById('attrs');
+const optCols = [1,2,3].map(p => document.querySelector(`.opt[data-opt="${p}"]`));
+ATTRS.forEach((a, ai) => {
+  const lab = document.createElement('div'); lab.className='attr';
+  lab.innerHTML = `${a.name}<small>${a.sub}</small>`;
+  attrsCol.appendChild(lab);
+  for (let p=0;p<3;p++){
+    const field = document.createElement('label'); field.className='field';
+    const span = document.createElement('span'); span.textContent = a.name; field.appendChild(span);
+    const sel = document.createElement('select');
+    sel.id = `a${ai}p${p}`; sel.setAttribute('aria-label', `${a.name}, option ${p+1}`);
+    a.levels.forEach((l, li) => { const o=document.createElement('option'); o.value=li+1; o.textContent=l; sel.appendChild(o); });
+    sel.value = DEFAULTS[p][ai];
+    sel.addEventListener('change', update);
+    field.appendChild(sel);
+    optCols[p].appendChild(field);
+  }
+});
+for (let p=1;p<=3;p++){
+  document.getElementById('on'+p).addEventListener('change', e => {
+    for (let ai=0;ai<4;ai++) document.getElementById(`a${ai}p${p-1}`).disabled = !e.target.checked;
+    update();
+  });
+}
+document.getElementById('segment').addEventListener('change', update);
+
+// ---- Simulation ----
+function readPlans(){
+  const plans=[], avail=[];
+  for (let p=0;p<3;p++){
+    avail.push(document.getElementById('on'+(p+1)).checked);
+    plans.push(ATTRS.map((_,ai)=>+document.getElementById(`a${ai}p${p}`).value));
+  }
+  return {plans, avail};
+}
+function selectRows(seg){
+  if (seg==='all') return DATA;
+  const col = seg.startsWith('reg') ? 0 : 1, val = +seg.slice(3);
+  return DATA.filter(r => r[col]===val);
+}
+function simulate(){
+  const {plans, avail} = readPlans();
+  const rows = selectRows(document.getElementById('segment').value);
+  const n = rows.length;
+  const sums=[0,0,0,0], sq=[0,0,0,0];
+  for (const r of rows){
+    const u = r.slice(2);
+    const vals = plans.map((pl,p) => avail[p] ? pl.reduce((s,lv,ai)=>s+u[OFFS[ai]+lv-1],0) : -Infinity);
+    vals.push(u[NONE_IDX]);
+    const m = Math.max(...vals);
+    const win = vals.map(v => Math.abs(v-m) < 1e-12 ? 1 : 0);
+    const k = win.reduce((a,b)=>a+b,0);
+    for (let j=0;j<4;j++){ const s = win[j]/k; sums[j]+=s; sq[j]+=s*s; }
+  }
+  return [0,1,2,3].map(j => {
+    const mean = sums[j]/n;
+    const sd = n>1 ? Math.sqrt(Math.max(0,(sq[j]-n*mean*mean)/(n-1))) : 0;
+    const se = sd/Math.sqrt(n);
+    return {name:NAMES[j], avail: j===3 || avail[j], mean, se, lo:mean-1.96*se, hi:mean+1.96*se};
+  }).concat([{n}]);
+}
+
+// ---- Render ----
+const pct = x => (x*100).toFixed(1)+'%';
+function update(){
+  const res = simulate(); const n = res.pop().n;
+  const W=900, left=150, right=70, top=16, rowH=52, plotW=W-left-right;
+  const xmax = 1; const x = v => left + v*plotW;
+  let s = '';
+  // axis
+  for (let t=0;t<=1.0001;t+=0.25){
+    s += `<line class="axis" x1="${x(t)}" x2="${x(t)}" y1="${top}" y2="${top+rowH*4}"/>`;
+    s += `<text class="axis-t" x="${x(t)}" y="${top+rowH*4+16}" text-anchor="middle">${Math.round(t*100)}%</text>`;
+  }
+  res.forEach((r,j) => {
+    const y = top + j*rowH + 8, h = 26;
+    s += `<text class="bar-label" x="${left-12}" y="${y+h/2+5}" text-anchor="end">${r.name}</text>`;
+    if (!r.avail){
+      s += `<text class="bar-sub" x="${x(0)+6}" y="${y+h/2+4}">not offered</text>`;
+      return;
+    }
+    s += `<rect class="bar" x="${x(0)}" y="${y}" width="${Math.max(0,x(r.mean)-x(0))}" height="${h}" rx="5" fill="${COLORS[j]}"/>`;
+    const lo=x(Math.max(0,r.lo)), hi=x(Math.min(1,r.hi)), cy=y+h/2;
+    s += `<line class="ci" x1="${lo}" x2="${hi}" y1="${cy}" y2="${cy}"/>`;
+    s += `<line class="ci" x1="${lo}" x2="${lo}" y1="${cy-6}" y2="${cy+6}"/><line class="ci" x1="${hi}" x2="${hi}" y1="${cy-6}" y2="${cy+6}"/>`;
+    s += `<text class="bar-val" x="${Math.min(hi, x(1))+10}" y="${cy+5}">${pct(r.mean)}</text>`;
+  });
+  s += `<text class="bar-sub" x="${W-right}" y="${top-4}" text-anchor="end">n = ${n}</text>`;
+  document.getElementById('chart').innerHTML = `<title id="chart-t">Share of experts choosing each option</title>` + s;
+
+  document.getElementById('stats').innerHTML = res.map((r,j) =>
+    r.avail
+      ? `<tr><td><span class="sw" style="background:${COLORS[j]}"></span>${r.name}</td><td>${pct(r.mean)}</td><td>${pct(r.se)}</td><td>(${pct(Math.max(0,r.lo))}, ${pct(Math.min(1,r.hi))})</td></tr>`
+      : `<tr><td><span class="sw" style="background:${COLORS[j]};opacity:.3"></span>${r.name}</td><td colspan="3" style="color:var(--ink-soft)">not offered</td></tr>`
+  ).join('');
+}
+update();
+</script>
+</body>
+</html>
